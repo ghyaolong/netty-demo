@@ -1,6 +1,5 @@
 package com.yao.netty.third;
 
-import com.yao.netty.second.MyServerInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
