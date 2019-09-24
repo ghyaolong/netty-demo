@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script>
+        var socket;
+        if (window.WebSocket) {
+            socket = new WebSocket("ws://localhost:9999/ws");
+
+            socket.onmessage = function (ev) {
+                var ta = document.getElementById("reponseText");
+                ta.value = ta.value + "\n" + ev.data;
+            }
+
+            socket.onopen = function (event) {
+                var ta = document.getElementById("responseText");
+                ta.value = "连接开启";
+            }
+
+            socket.onclose = function (ev) {
+                var ta = document.getElementById("responseText");
+                ta.value = ta.value + "\n" + "连接关闭";
+            }
+
+        } else {
+            alert("不支持socket");
+        }
+    </script>
+</head>
+<body>
+<form action="">
+    <textarea id="requestText" style="width: 300px;height: 300px">
+
+    </textarea>
+    <input type="button" id="发送数据" value="发送数据"><br>
+
+
+    服务器返回数据:<br>
+    <textarea id="reponseText" style="width: 300px;height: 300px">
+
+
+    </textarea>
+</form>
+</body>
+</html>
