@@ -12,4 +12,9 @@ public class TextWebSocketFrameHandler extends SimpleChannelInboundHandler<TextW
         System.out.println("接收到客户端的数据："+ msg.text());
         ctx.channel().writeAndFlush(new TextWebSocketFrame("服务器时间："+ LocalDateTime.now()));
     }
+
+    @Override
+    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("建立连接:"+ctx.channel().id().asLongText());
+    }
 }

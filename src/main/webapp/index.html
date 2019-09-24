@@ -9,13 +9,14 @@
             socket = new WebSocket("ws://localhost:9999/ws");
 
             socket.onmessage = function (ev) {
-                var ta = document.getElementById("reponseText");
+                var ta = document.getElementById("responseText");
                 ta.value = ta.value + "\n" + ev.data;
             }
 
             socket.onopen = function (event) {
                 var ta = document.getElementById("responseText");
-                ta.value = "连接开启";
+                console.info(ta);
+                ta.value = "连接开启!";
             }
 
             socket.onclose = function (ev) {
@@ -26,21 +27,32 @@
         } else {
             alert("不支持socket");
         }
+
+        function sendMsg(msg) {
+            if(!window.WebSocket){
+                return;
+            }
+            if(socket.readyState == WebSocket.OPEN){
+                socket.send(msg);
+            }else {
+                alert("连接尚未开启!");
+            }
+        }
     </script>
 </head>
 <body>
-<form action="">
-    <textarea id="requestText" style="width: 300px;height: 300px">
+    <form action="">
+        <textarea id="requestText" name="message" style="width: 300px;height: 300px">
 
-    </textarea>
-    <input type="button" id="发送数据" value="发送数据"><br>
-
-
-    服务器返回数据:<br>
-    <textarea id="reponseText" style="width: 300px;height: 300px">
+        </textarea>
+        <input type="button" id="发送数据" value="发送数据" onclick="sendMsg(this.form.message.value)"><br>
 
 
-    </textarea>
-</form>
+        服务器返回数据:<br>
+        <textarea id="responseText" style="width: 300px;height: 300px">
+
+
+        </textarea>
+    </form>
 </body>
 </html>
