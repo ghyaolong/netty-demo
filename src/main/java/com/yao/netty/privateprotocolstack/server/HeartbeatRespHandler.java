@@ -1,7 +1,7 @@
 package com.yao.netty.privateprotocolstack.server;
 
 import com.yao.netty.privateprotocolstack.Header;
-import com.yao.netty.privateprotocolstack.MessageType;
+import com.yao.netty.privateprotocolstack.base.MessageType;
 import com.yao.netty.privateprotocolstack.NettyMessage;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -13,34 +13,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class HeartbeatRespHandler extends ChannelInboundHandlerAdapter {
 
-    private static int MAXIDLECOUNT = 5;
-    private volatile Map<String, Integer> idleCount = new ConcurrentHashMap<>();
+    private final static int MAXIDLECOUNT = 5;
+    private volatile Map<String, Integer> idleCount = new ConcurrentHashMap<String, Integer>();
 
     @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof IdleStateEvent) {
-            IdleStateEvent event = (IdleStateEvent) evt;
-
-            if (event.state() == IdleState.ALL_IDLE) {
-                System.out.println("空闲");
-                String nodeIndex = ctx.channel().remoteAddress().toString();
-                int i = 1;
-                if (idleCount.containsKey(nodeIndex)) {
-                    i = idleCount.get(nodeIndex);
-                    if (++i == MAXIDLECOUNT) {
-                        ctx.close();
-                    } else {
-                        idleCount.put(nodeIndex, i);
-                    }
-                } else {
-                    idleCount.put(nodeIndex, i);
-                }
-                System.out.println("空闲:" + i);
-            }else{
-                ctx.fireUserEventTriggered(evt);
-            }
-
-        }
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
+            throws Exception {
+        super.exceptionCaught(ctx, cause);
     }
 
     @Override
@@ -48,26 +27,52 @@ public class HeartbeatRespHandler extends ChannelInboundHandlerAdapter {
         NettyMessage message = (NettyMessage) msg;
         String nodeIndex = ctx.channel().remoteAddress().toString();
         if (idleCount.containsKey(nodeIndex)) {
+//			int i = idleCount.get(nodeIndex);
             idleCount.remove(nodeIndex);
         }
         if (message.getHeader() != null && message.getHeader().getType() == MessageType.HEATBEAT_REQ.value()) {
-            System.out.println("server receive client heartbeat message:" + message);
-            ctx.writeAndFlush(buildMessage());
+            System.out.println("Server recive client hearth beat message: --->" + message);
+            //响应心跳
+            ctx.writeAndFlush(buildHearthBeatResp());
         } else {
             ctx.fireChannelRead(msg);
         }
     }
 
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        super.exceptionCaught(ctx, cause);
-    }
-
-    private NettyMessage buildMessage() {
-        NettyMessage message = new NettyMessage();
+    private NettyMessage buildHearthBeatResp() {
+        NettyMessage hearthBeat = new NettyMessage();
         Header header = new Header();
         header.setType(MessageType.HEATBEAT_RESP.value());
-        message.setHeader(header);
-        return message;
+        hearthBeat.setHeader(header);
+        return hearthBeat;
+    }
+
+    /**
+     * 超时重连机制
+     */
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            IdleStateEvent event = (IdleStateEvent) evt;
+            //读写空闲
+            if (event.state() == IdleState.ALL_IDLE) {
+                System.out.println("读写空闲.");
+                String nodeIndex = ctx.channel().remoteAddress().toString();
+                int i = 1;
+                if (idleCount.containsKey(nodeIndex)) {
+                    i = idleCount.get(nodeIndex);
+                    if (++i == MAXIDLECOUNT) {
+                        ctx.close();//超过一定次数断掉客户端连接
+                    } else {
+                        idleCount.put(nodeIndex, i);
+                    }
+                } else {
+                    idleCount.put(nodeIndex, i);
+                }
+                System.out.println(nodeIndex + "空闲次数:[" + i + "]");
+            }
+        } else {
+            ctx.fireUserEventTriggered(evt);
+        }
     }
 }

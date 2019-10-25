@@ -15,8 +15,7 @@ public class NettyMarshallingEncoder extends MarshallingEncoder {
         super(provider);
     }
 
-    @Override
-    protected void encode(ChannelHandlerContext ctx, Object msg, ByteBuf out) throws Exception {
+    public void encode(ChannelHandlerContext ctx, Object msg, ByteBuf out) throws Exception {
         super.encode(ctx, msg, out);
     }
 }

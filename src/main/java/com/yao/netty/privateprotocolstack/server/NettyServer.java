@@ -2,8 +2,8 @@ package com.yao.netty.privateprotocolstack.server;
 
 import com.yao.netty.privateprotocolstack.client.HeartbeatReqHandler;
 import com.yao.netty.privateprotocolstack.client.LoginAuthReqHandler;
-import com.yao.netty.privateprotocolstack.codec.marshalling.NettyMessageDecoder;
-import com.yao.netty.privateprotocolstack.codec.marshalling.NettyMessageEncoder;
+import com.yao.netty.privateprotocolstack.codec.NettyMessageDecoder;
+import com.yao.netty.privateprotocolstack.codec.NettyMessageEncoder;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -23,35 +23,42 @@ public class NettyServer {
 
     final ChannelGroup allChannels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
-    public void bind() throws InterruptedException {
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-        EventLoopGroup workGroup = new NioEventLoopGroup();
+    public static void main(String[] args) {
         try {
-            ServerBootstrap bootstrap = new ServerBootstrap();
-            bootstrap.group(bossGroup,workGroup).channel(NioServerSocketChannel.class)
-                    .option(ChannelOption.SO_BACKLOG,100)
-                    .handler(new LoggingHandler(LogLevel.INFO))
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) throws Exception {
-                            allChannels.add(ch);
-                            ch.pipeline().addLast(new NettyMessageDecoder(1024*1024,4,4,-8,0));
-                            ch.pipeline().addLast(new NettyMessageEncoder());
-                            ch.pipeline().addLast(new LoginAuthReqHandler())
-                                    .addLast(new ReadTimeoutHandler(50))
-                                    .addLast(new IdleStateHandler(0,0,5))
-                                    .addLast(new HeartbeatReqHandler());
-                        }
-                    });
-            bootstrap.bind(8888).sync().channel().closeFuture().sync();
-
-        }finally {
-            bossGroup.shutdownGracefully();
-            workGroup.shutdownGracefully();
+            new NettyServer().bind(8888);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        new NettyServer().bind();
+    public void bind(int port) throws Exception {
+        EventLoopGroup bossGroup = new NioEventLoopGroup();
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
+
+        try {
+            ServerBootstrap b = new ServerBootstrap();
+            b.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.SO_BACKLOG, 100)
+                    .handler(new LoggingHandler(LogLevel.INFO))
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel sc)
+                                throws Exception {
+                            allChannels.add(sc);
+                            sc.pipeline().addLast(new NettyMessageDecoder(1024 * 1024, 4, 4, -8, 0))
+                                    .addLast(new NettyMessageEncoder())
+                                    .addLast(new ReadTimeoutHandler(50))
+                                    .addLast(new LoginAuthRespHandler())
+                                    .addLast(new IdleStateHandler(0, 0, 5))
+                                    .addLast(new HeartbeatRespHandler());
+                        }
+                    });
+
+            b.bind(port).sync().channel().closeFuture().sync();
+        } finally {
+            bossGroup.shutdownGracefully();
+            workerGroup.shutdownGracefully();
+        }
     }
 }

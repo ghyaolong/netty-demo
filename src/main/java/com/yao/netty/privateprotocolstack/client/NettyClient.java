@@ -1,7 +1,7 @@
 package com.yao.netty.privateprotocolstack.client;
 
-import com.yao.netty.privateprotocolstack.codec.marshalling.NettyMessageDecoder;
-import com.yao.netty.privateprotocolstack.codec.marshalling.NettyMessageEncoder;
+import com.yao.netty.privateprotocolstack.codec.NettyMessageDecoder;
+import com.yao.netty.privateprotocolstack.codec.NettyMessageEncoder;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -32,14 +32,15 @@ public class NettyClient {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
                             ch.pipeline()
-                                    .addLast(new NettyMessageEncoder())
+                                    //第一个参数是指数据包的最大值，第二个是协议中“长度”字段的偏移地址，第三个是“长度字段”的长度，第四个是针对2和3的一个容量修正，因为源码里面会会把参数2和3加起来，会使frameLength过大而抛异常
                                     .addLast(new NettyMessageDecoder(1024*1024,4,4,-8 ,0))
+                                    .addLast(new NettyMessageEncoder())
                                     .addLast(new ReadTimeoutHandler(50))
                                     .addLast(new LoginAuthReqHandler())
                                     .addLast(new HeartbeatReqHandler());
                         }
                     });
-            ChannelFuture future = bootstrap.connect(new InetSocketAddress(host,port),new InetSocketAddress("127.0.0.1", 8888)).sync();
+            ChannelFuture future = bootstrap.connect(new InetSocketAddress(host,port),new InetSocketAddress("127.0.0.1", 7777)).sync();
             future.channel().closeFuture().sync();
         }finally {
             executorService.execute(new Runnable() {

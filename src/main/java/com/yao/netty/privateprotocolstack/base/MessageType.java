@@ -1,4 +1,4 @@
-package com.yao.netty.privateprotocolstack;
+package com.yao.netty.privateprotocolstack.base;
 
 public enum MessageType {
 

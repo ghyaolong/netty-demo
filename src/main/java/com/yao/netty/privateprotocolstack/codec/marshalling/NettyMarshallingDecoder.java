@@ -6,19 +6,17 @@ import io.netty.handler.codec.marshalling.MarshallingDecoder;
 import io.netty.handler.codec.marshalling.UnmarshallerProvider;
 
 public class NettyMarshallingDecoder extends MarshallingDecoder {
-
-
-
     public NettyMarshallingDecoder(UnmarshallerProvider provider) {
         super(provider);
     }
 
-    public NettyMarshallingDecoder(UnmarshallerProvider provider, int maxObjectSize) {
+    public NettyMarshallingDecoder(UnmarshallerProvider provider,
+                                   int maxObjectSize) {
         super(provider, maxObjectSize);
     }
 
-    @Override
-    protected Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
-        return super.decode(ctx, in);
+    public Object decode(ChannelHandlerContext arg0, ByteBuf arg1)
+            throws Exception {
+        return super.decode(arg0, arg1);
     }
 }

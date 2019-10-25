@@ -1,75 +1,70 @@
 package com.yao.netty.privateprotocolstack.server;
 
 import com.yao.netty.privateprotocolstack.Header;
-import com.yao.netty.privateprotocolstack.MessageType;
+import com.yao.netty.privateprotocolstack.base.MessageType;
 import com.yao.netty.privateprotocolstack.NettyMessage;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LoginAuthRespHandler extends ChannelInboundHandlerAdapter {
 
-    private Map<String, Boolean> nodeCheck = new ConcurrentHashMap<>();
-
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        NettyMessage message = (NettyMessage) msg;
-        if (message.getHeader() != null && message.getHeader().getType() == MessageType.LOGIN_REQ.value()) {
-            System.out.println("握手信息正确");
-            String nodeIndex = ctx.channel().remoteAddress().toString();
-            System.out.println("当前nodeIndex：" + nodeIndex);
-            NettyMessage resp = null;
-
-            if (nodeCheck.containsKey(nodeIndex)) {
-                resp = buildMessage((byte) -1);
-            } else {
-                nodeCheck.put(nodeIndex, true);
-                resp = buildMessage((byte) 0);
-            }
-            String body = (String) message.getBody();
-
-            System.out.println("recieved client message :" + body);
-            ctx.writeAndFlush(resp);
-
-        } else {
-            ctx.fireChannelRead(msg);
-        }
-
-    }
-
-    private NettyMessage buildMessage(byte resp) {
-        NettyMessage message = new NettyMessage();
-        Header header = new Header();
-        header.setType(MessageType.LOGIN_RESP.value());
-        message.setHeader(header);
-        message.setBody(resp);
-        return message;
-    }
+    private Map<String, Boolean> nodeCheck = new ConcurrentHashMap<String, Boolean>();
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        super.exceptionCaught(ctx, cause);
+        //删除缓存，以便客户端重连
         ctx.close();
     }
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.writeAndFlush(buildMessage());
-    }
-
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        //删除缓存，以便客户端重连
         nodeCheck.remove(ctx.channel().remoteAddress().toString());
         super.channelInactive(ctx);
     }
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        NettyMessage message = (NettyMessage) msg;
+        //如果是握手请求,处理,其他消息透传
+        if (message.getHeader() != null && message.getHeader().getType() == MessageType.LOGIN_REQ.value()) {
 
-    private NettyMessage buildMessage() {
+            System.out.println("Login is OK");
+            String nodeIndex = ctx.channel().remoteAddress().toString();
+            System.out.println("nodeIndex:[" + nodeIndex + "]");
+            //定义响应体
+            NettyMessage resp = null;
+
+            //验证
+            if (nodeCheck.containsKey(nodeIndex)) {
+                //重复登陆,拒绝
+                resp = buildLoginResp((byte) -1);
+            } else {
+                InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
+                String ip = address.getAddress().getHostAddress();
+                //IP验证.白名单我们就省略
+                nodeCheck.put(nodeIndex,true);
+
+                resp = buildLoginResp((byte) 0);
+            }
+            String body = (String) message.getBody();
+            System.out.println("Recevied message body from client is" + body);
+            //
+            ctx.writeAndFlush(resp);
+        } else {
+            //透传到下层Handler处理
+            ctx.fireChannelRead(msg);
+        }
+    }
+
+    //创建消息响应体
+    private NettyMessage buildLoginResp(byte response) {
         NettyMessage message = new NettyMessage();
         Header header = new Header();
-        header.setType(MessageType.LOGIN_REQ.value());
+        header.setType(MessageType.LOGIN_RESP.value());
+        message.setBody(response);
         message.setHeader(header);
         return message;
     }
