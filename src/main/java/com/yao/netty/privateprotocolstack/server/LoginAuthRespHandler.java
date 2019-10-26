@@ -50,7 +50,7 @@ public class LoginAuthRespHandler extends ChannelInboundHandlerAdapter {
                 resp = buildLoginResp((byte) 0);
             }
             String body = (String) message.getBody();
-            System.out.println("Recevied message body from client is" + body);
+            System.out.println("Recevied message body from client is  " + body);
             //
             ctx.writeAndFlush(resp);
         } else {

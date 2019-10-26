@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HeartbeatRespHandler extends ChannelInboundHandlerAdapter {
 
     private final static int MAXIDLECOUNT = 5;
-    private volatile Map<String, Integer> idleCount = new ConcurrentHashMap<String, Integer>();
+    private volatile Map<String, Integer> idleCount = new ConcurrentHashMap<>();
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
